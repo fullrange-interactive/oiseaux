@@ -42,14 +42,19 @@
 
 				var vector = new THREE.Vector3(),
 				_acceleration, _width = 500, _height = 500, _depth = 200, _goal, _neighborhoodRadius = 100,
-				_maxSpeed = 4, _maxSteerForce = 0.1, _avoidWalls = false;
+				_maxSpeed = 4, _maxSteerForce = 0.1, _avoidWalls = false, _color;
+                
                 
                 // From 0.1 to 0.9
-                _flockingProbability = 0.5; 
+                var _flockingProbability = 0.5; 
+
                 // user defined movement vector 
                 var _movementVector = new THREE.Vector3();
 
-				this.position = new THREE.Vector3();
+                // generate a unique identifier for the boid 
+                this.uniqueIdentifier = (Math.random()-0.000001).toString(36).slice(2); 
+				
+                this.position = new THREE.Vector3();
 				this.velocity = new THREE.Vector3();
 				_acceleration = new THREE.Vector3();
 
@@ -59,7 +64,9 @@
 
 				};
                 this.setMovementVector = function ( value ) {
+             
                     _movementVector = value; 
+                    this.movementVector = _movementVector;
                 }
 
 				this.setAvoidWalls = function ( value ) {
@@ -346,11 +353,10 @@
 			var boid, boids;
 
 			var stats;
-
-			init();
+			init(restoreStateFromLocalStorage());
 			animate();
 
-			function init() {
+			function init(boidsUnserialized) {
 
 				camera = new THREE.PerspectiveCamera( 75, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 10000 );
 				camera.position.z = 200;
@@ -359,37 +365,52 @@
 
 				birds = [];
 				boids = [];
-                boidIndex = 0;
 
-                for ( var i = 0; i < 1; i++ ) {
-            
-					boid = boids[ i ] = new Boid();
-					boid.position.x = Math.random() * 400 - 200;
-					boid.position.y = Math.random() * 400 - 200;
-					boid.position.z = Math.random() * 400 - 200;
-					boid.velocity.x = Math.random() * 2 - 1;
-					boid.velocity.y = Math.random() * 2 - 1;
-					boid.velocity.z = Math.random() * 2 - 1;
-					boid.setAvoidWalls( true );
-					boid.setWorldSize( 500, 500, 400 );
+                if (boidsUnserialized) {
+                    // Recreate boids 
+                    var limit = boidsUnserialized.length;
                     
-					bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color:Math.random() * 0xffffff, side: THREE.DoubleSide } ) );
+                    for ( var i = 0; i < limit; i++ ) {
+
+                        _boid = boidsUnserialized[i];
+
+					    boid = boids[ i ] = new Boid();
+					    boid.position.x = _boid.position.x;
+					    boid.position.y = _boid.position.y;
+				    	boid.position.z = _boid.position.z;
+					    boid.velocity.x = _boid.velocity.x;
+					    boid.velocity.y = _boid.velocity.y;
+					    boid.velocity.z = _boid.velocity.z;
+                        boid.uniqueIdentifier = _boid.uniqueIdentifier;
+					    boid.setAvoidWalls( true );
+					    boid.setWorldSize( 500, 500, 400 );
+                    
+                        var movementVector = new THREE.Vector3(); 
+
+                        // Set the speed and the user defined movement vector 
+                        movementVector.set(_boid.movementVector.x,_boid.movementVector.y,_boid.movementVector.z);
+                        boid.setMovementVector(movementVector);
+                        boid._maxSteerForce = _boid._maxSteerForce; 
+                        boid._maxSpeed = _boid._maxSpeed;
+					    
+                        bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color:Math.random() * 0xffffff, side: THREE.DoubleSide } ) );
 					
-                    bird.phase = Math.floor( Math.random() * 62.83 );
+                        bird.phase = Math.floor( Math.random() * 62.83 );
 
-                    // So we can track witch boid is associated to the bird
-                    boid.uniqueIdentifier = bird.geometry.uniqueIdentifier;
-					scene.add( bird );
+                        // So we can track witch boid is associated to the bird
+                        bird.geometry.uniqueIdentifier = boid.uniqueIdentifier;
 
+					    scene.add( bird );
+				    }
+                }
 
-				}
                 // Initialize selection circle 
                 circle = new THREE.RingGeometry(8,10,42);
                 circle.position = new THREE.Vector3();
                 var circleMaterial = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide });
                 selectionCircle = new THREE.Mesh(circle,circleMaterial);
 
-                // Set the timer for the change of the flocking probabily
+                // Set the timer to change the flocking probabily for each boid
                 window.setTimeout(randomizeFlockingProbability,(1000*60)*1); 
                 
                 
@@ -417,11 +438,15 @@
             */
             function randomizeFlockingProbability() {
                 
+                // DBG
+                saveCurrentStateToLocalStorage();
                 var newFlockingProbability = Math.random();
 			    for ( var i = 0, il = boids.length; i < il; i ++ ) {
                     var boid = boids[i];
                     boid._flockingProbability = newFlockingProbability; 
                 }
+                // reset the timer to the change  flocking probabily for each boid
+                window.setTimeout(randomizeFlockingProbability,(1000*60)*1); 
             }
 
             /*
@@ -479,8 +504,56 @@
 					scene.add( bird );
 
             }
-            
 
+            /*
+              Saves the current state of to local storage, each boid and bird. 
+            */
+            function saveCurrentStateToLocalStorage() {
+                
+                var localStorage = window.localStorage;
+                // Test if local storage exists
+                if(!testLocalStorage) {
+                    throw "Cannot run without local storage support...";
+                }
+                var boids = JSON.stringify(this.boids);
+                localStorage.setItem("boids",boids);
+
+            }
+            function testLocalStorage() {
+            
+                try {
+                    var storage = window.localStorage, x='__storage_test__';
+                    storage.setItem(x,x);
+                    storage.removeItem(x);
+                    return true;
+                }
+                catch(e) {
+                    return false;                
+                }
+            }
+
+            /*
+              Restores state saved prior 
+            */
+            function restoreStateFromLocalStorage() {
+                
+                var localStorage = window.localStorage;
+
+                if(!testLocalStorage) {
+                    throw "Cannot run without local storage support...";
+                }
+                // DBG
+                //return false; 
+                var boids = localStorage.getItem("boids")
+                if (!boids) {
+                    return false;
+                }
+
+                // Recreate boid objects 
+                boids = JSON.parse(boids);
+                return boids;
+
+            }
 
 			function onWindowResize() {
 
