@@ -5,6 +5,8 @@
 		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
 		<style>
 			body {
+				min-height: 100%;
+				min-width: 100%;
 				color: #808080;
 				font-family:Monospace;
 				font-size:13px;
@@ -13,6 +15,19 @@
 				background-color: #ffffff;
 				margin: 0px;
 				overflow: hidden;
+			}
+			body:after
+			{
+				content: '';
+				position: absolute;
+				left: 0;
+				top: 0;
+				bottom: 0;
+				right: 0;
+				background-image: url(mask-v2.png);
+				background-size: contain;
+				background-position: 0% 0%;
+				background-repeat: no-repeat;
 			}
 
 			#info {
@@ -393,7 +408,7 @@
                         boid._maxSteerForce = _boid._maxSteerForce; 
                         boid._maxSpeed = _boid._maxSpeed;
 					    
-                        bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color:Math.random() * 0xffffff, side: THREE.DoubleSide } ) );
+                        bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: 0xffffff, side: THREE.DoubleSide } ) );
 					
                         bird.phase = Math.floor( Math.random() * 62.83 );
 
@@ -412,10 +427,13 @@
 
                 // Set the timer to change the flocking probabily for each boid
                 window.setTimeout(randomizeFlockingProbability,(1000*60)*1); 
+
+                // Set the timer to save the current state to local storage each minute
+                window.setTimeout(saveCurrentStateToLocalStorage,(1000*60)*1);
                 
                 
 				renderer = new THREE.CanvasRenderer();
-				renderer.setClearColor( 0xffffff );
+				renderer.setClearColor( 0x000000,0 );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
 
@@ -438,8 +456,6 @@
             */
             function randomizeFlockingProbability() {
                 
-                // DBG
-                saveCurrentStateToLocalStorage();
                 var newFlockingProbability = Math.random();
 			    for ( var i = 0, il = boids.length; i < il; i ++ ) {
                     var boid = boids[i];
@@ -518,6 +534,8 @@
                 var boids = JSON.stringify(this.boids);
                 localStorage.setItem("boids",boids);
 
+                // reset the timer to save the current state to local storage each minute
+                window.setTimeout(saveCurrentStateToLocalStorage,(1000*60)*1);
             }
             function testLocalStorage() {
             
@@ -542,8 +560,7 @@
                 if(!testLocalStorage) {
                     throw "Cannot run without local storage support...";
                 }
-                // DBG
-                //return false; 
+
                 var boids = localStorage.getItem("boids")
                 if (!boids) {
                     return false;
@@ -612,11 +629,11 @@
 					color = bird.material.color;
 					color.r = color.g = color.b = ( 500 - bird.position.z ) / 1000;
 
-					//bird.rotation.y = Math.atan2( - boid.velocity.z, boid.velocity.x );
-					//bird.rotation.z = Math.asin( boid.velocity.y / boid.velocity.length() );
+					bird.rotation.y = Math.atan2( - boid.velocity.z, boid.velocity.x );
+					bird.rotation.z = Math.asin( boid.velocity.y / boid.velocity.length() );
 
-					//bird.phase = ( bird.phase + ( Math.max( 0, bird.rotation.z ) + 0.1 )  ) % 62.83;
-					//bird.geometry.vertices[ 5 ].y = bird.geometry.vertices[ 4 ].y = Math.sin( bird.phase ) * 5;
+					bird.phase = ( bird.phase + ( Math.max( 0, bird.rotation.z ) + 0.1 )  ) % 62.83;
+					bird.geometry.vertices[ 5 ].y = bird.geometry.vertices[ 4 ].y = Math.sin( bird.phase ) * 5;
 
 				}
 
