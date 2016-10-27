@@ -41,8 +41,11 @@
 	<body>
 
 		<div id="container"></div>
+		
 		<script src="lib/three.js/build/three.js"></script>
-
+		<!-- Web socket connection library -->
+        
+        <script src="lib/websocketConnection.js"></script>
         <!-- ThreeJS Libs -->
 		<script src="lib/three.js/Projector.js"></script>
 		<script src="lib/three.js/CanvasRenderer.js"></script>
@@ -79,6 +82,10 @@
 					_goal = target;
 
 				};
+				this.setColor = function (value) {
+					_color = value;
+					this.color = _color;
+				}
                 this.setMovementVector = function ( value ) {
              
                     _movementVector = value; 
@@ -362,20 +369,43 @@
 			SCREEN_WIDTH_HALF = SCREEN_WIDTH  / 2,
 			SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
 
+
+			var MAX_BIRDS = 2000;						// the amount of birds reach this limit 
+			var BIRD_CREATION_ON_INACTIVTY_TIMER = 1;   // Create bird if not active for 10 min 
+			var BIRD_CREATION_COUNT = 5;				// How many birds to create when inactivity timer is reached 
+			var BIRD_UNSELECTION_TIMER = 1;				// How many minutes the birds stays selected
+
+			var inactivityTimer = window.setTimeout(createBirdsAutomatically,(1000*60)*BIRD_CREATION_ON_INACTIVTY_TIMER);         
+			var unselectTimer = null;
+			var selectedBirdId = null;
+			var automaticBirdCreation = false;		
+
 			var camera, scene, renderer,
 			birds, bird, selectionCircle, selectionCirclePosition;
       
 
 			var boid, boids;
-
+			// Open persistent web socket connection to the server
+            var connection = new WebsocketConnection(
+              'jebediah.pimp-my-wall.ch',
+              8000,
+              {
+                open: onOpen,
+                close: function () {},
+                message: onMessage
+              }, {
+                autoConnect: true,
+                autoReconnect: true
+              }
+            );
 			var stats;
 			init(restoreStateFromLocalStorage());
 			animate();
 
 			function init(boidsUnserialized) {
 
-				camera = new THREE.PerspectiveCamera( 75, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 10000 );
-				camera.position.z = 200;
+				camera = new THREE.PerspectiveCamera( 25, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 10000 );
+				camera.position.z = 400;
 
 				scene = new THREE.Scene();
 
@@ -391,6 +421,13 @@
                         _boid = boidsUnserialized[i];
 
 					    boid = boids[ i ] = new Boid();
+
+					    if(_boid.color) {
+					    	boid.setColor(_boid.color);
+					    } else {
+					    	boid.color = 0xffffff;
+					    }
+
 					    boid.position.x = _boid.position.x;
 					    boid.position.y = _boid.position.y;
 				    	boid.position.z = _boid.position.z;
@@ -399,7 +436,7 @@
 					    boid.velocity.z = _boid.velocity.z;
                         boid.uniqueIdentifier = _boid.uniqueIdentifier;
 					    boid.setAvoidWalls( true );
-					    boid.setWorldSize( 500, 500, 400 );
+					    boid.setWorldSize( SCREEN_WIDTH, SCREEN_HEIGHT, 200 );
                     
                         var movementVector = new THREE.Vector3(); 
 
@@ -409,7 +446,7 @@
                         boid._maxSteerForce = _boid._maxSteerForce; 
                         boid._maxSpeed = _boid._maxSpeed;
 					    
-                        bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: 0xffffff, side: THREE.DoubleSide } ) );
+                        bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: boid.color, side: THREE.DoubleSide } ) );
 					
                         bird.phase = Math.floor( Math.random() * 62.83 );
 
@@ -427,14 +464,14 @@
                 selectionCircle = new THREE.Mesh(circle,circleMaterial);
 
                 // Set the timer to change the flocking probabily for each boid
-                window.setTimeout(randomizeFlockingProbability,(1000*60)*1); 
+                window.setTimeout(randomizeFlockingProbability,(1000*60)*1);
 
                 // Set the timer to save the current state to local storage each minute
                 window.setTimeout(saveCurrentStateToLocalStorage,(1000*60)*1);
                 
                 
-				renderer = new THREE.CanvasRenderer();
-				renderer.setClearColor( 0x000000,0 );
+				renderer = new THREE.WebGLRenderer();
+				renderer.setClearColor( 0x000000,1 );
 				renderer.setPixelRatio( window.devicePixelRatio );
 				renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
 
@@ -465,60 +502,123 @@
                 // reset the timer to the change  flocking probabily for each boid
                 window.setTimeout(randomizeFlockingProbability,(1000*60)*1); 
             }
-
+            /*
+				Creates a batch of 10 birds if there was no activity 
+            */
+            function createBirdsAutomatically() {
+            	
+            	if(boids.length > MAX_BIRDS) {
+            		return;
+            	}
+      
+            	// reSet the adds birds 
+                inactivityTimer = window.setTimeout(createBirdsAutomatically,(1000*60)*BIRD_CREATION_ON_INACTIVTY_TIMER); 
+                for(var i = 0; i < BIRD_CREATION_COUNT; i++) {
+                	automaticBirdCreation = true;	
+                	addBird();
+                	console.log("added bird automatically");
+                	automaticBirdCreation = false;
+                }
+            }
+     
             /*
                 Sets the flag on the bird matching the passed uniqueIndentifier
                 and adds the selection circle mesh into the scene
             */
             function selectBird(uniqueIdentifier) {
                 
-                scene.add(selectionCircle); 
-            }
-            /*
-                The inverse of selectBird
-            */
-            function unselectBird(uniqueIdentifier) {
 
+                for (var i = 0; i < boids.length; i++) {
+                	boid = boids[i];
+                	// Unselect previous bird
+                	birds[i].isSelected = false;
+                	if (boid.uniqueIdentifier == uniqueIdentifier) {
+                		// Matched
+                		scene.add(selectionCircle);
+                		birds[i].isSelected = true;
+                		selectedBirdId = uniqueIdentifier;
+
+                		window.clearTimeout(unselectTimer);
+                		unselectTimer = window.setTimeout(unselectBird,(1000*60)*BIRD_UNSELECTION_TIMER); 
+
+                		break;
+                	}
+                }
+                
+            }
+      		/*
+				Deselects a bird.
+      		*/
+            function unselectBird() {
+ 
+                for (var i = 0; i < boids.length; i++) {
+                	boid = boids[i];
+                	if (boid.uniqueIdentifier == selectedBirdId) {
+                		// Matched
+                		scene.remove(selectionCircle);
+                		birds[i].isSelected = false;
+                		break;
+                	}
+                }
+                
             }
 
             /*
                Creates and adds a bird to the scene
              */
-            function addBird(event) {
+            function addBird(event,birdId,maxSpeed,movementX,movementY,movementZ,birdColor) {
 
-					boidIndex = boids.length;
-                    boid = boids[ boidIndex ] = new Boid();
+        		// Stop & restart inactivity timer for automatic bird creation 
+        		window.clearTimeout(inactivityTimer);
+        		inactivityTimer = window.setTimeout(createBirdsAutomatically,(1000*60)*BIRD_CREATION_ON_INACTIVTY_TIMER); 
 
-					boid.position.x = Math.random() * 400 - 200;
-					boid.position.y = Math.random() * 400 - 200;
-					boid.position.z = Math.random() * 400 - 200;
-                    
-					boid.velocity.x = Math.random() * 2 - 1;
-					boid.velocity.y = Math.random() * 2 - 1;
-					boid.velocity.z = Math.random() * 2 - 1;
-					boid.setAvoidWalls( true );
-					boid.setWorldSize( 500, 500, 400 );
-                    
-                    // Test
-                    var movementVector = new THREE.Vector3(); 
-                    movementVector.set(Math.random(),Math.random(),Math.random());
-                   
-                    // Set the speed and the user defined movement vector 
-                    boid.setMovementVector(movementVector);
-                    boid._maxSteerForce = Math.random(); 
-                    boid._maxSpeed = Math.floor(Math.random()*15);
-					
-                    bird = birds[ boidIndex ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color:Math.random() * 0xffffff, side: THREE.DoubleSide } ) );
+				console.log(maxSpeed);
+				boidIndex = boids.length;
+                boid = boids[ boidIndex ] = new Boid();
+
+				boid.position.x = Math.random() * 400 - 200;
+				boid.position.y = Math.random() * 400 - 200;
+				boid.position.z = Math.random() * 400 - 200;
+                
+				boid.velocity.x = Math.random() * 2 - 1;
+				boid.velocity.y = Math.random() * 2 - 1;
+				boid.velocity.z = Math.random() * 2 - 1;
+				boid.setAvoidWalls( true );
+				boid.setWorldSize( SCREEN_WIDTH, SCREEN_HEIGHT, 200 );
+                
+                // Created from a click - position is randomized
+                var movementVector = new THREE.Vector3(); 
+                movementVector.set(Math.random(),Math.random(),Math.random());
+               
+                // Set the speed and the user defined movement vector 
+                boid.setMovementVector(movementVector);
+                boid._maxSteerForce = Math.random(); 
+                boid._maxSpeed = Math.floor(Math.random()*15);
+                color = Math.floor(Math.random()*16777215);
+                
+                if(birdId) {
+                	// Bird is created by the web app 
+                	boid._maxSpeed = maxSpeed;
+                	movementVector.set(movementX,movementY,movementZ);
+                	boid.setMovementVector(movementVector);
+                	boid.uniqueIdentifier = birdId;
+                	color = birdColor;
+
+                }
+				boid.setColor(color);
+                bird = birds[ boidIndex ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color:color, side: THREE.DoubleSide } ) );
 				
-                    bird.isSelected = true;
+				if(!automaticBirdCreation) {
+                	selectBird(boid.uniqueIdentifier);
+				}
 
-                    selectBird("0230423");    
-                    bird.phase = Math.floor( Math.random() * 2.83 );
-                    // Set random goal to each bird 
-                    // boid.setGoal(new THREE.Vector3( Math.random() * 500-100 , Math.random() * 500-100, Math.random() * 500 - 100));
-                    // So we can track witch boid is associated to the bird
-                    boid.uniqueIdentifier = bird.geometry.uniqueIdentifier;
-					scene.add( bird );
+                    
+                bird.phase = Math.floor( Math.random() * 62.83 );
+                // Set random goal to each bird 
+                // boid.setGoal(new THREE.Vector3( Math.random() * 500-100 , Math.random() * 500-100, Math.random() * 500 - 100));
+                // So we can track witch boid is associated to the bird
+                
+				scene.add( bird );
 
             }
 
@@ -627,8 +727,8 @@
                         selectionCircle.position.copy(boids[i].position);
                     } 
 
-					color = bird.material.color;
-					color.r = color.g = color.b = ( 500 - bird.position.z ) / 1000;
+					//color = bird.material.color;
+					//color.r = color.g = color.b = ( 500 - bird.position.z ) / 1000;
 
 					bird.rotation.y = Math.atan2( - boid.velocity.z, boid.velocity.x );
 					bird.rotation.z = Math.asin( boid.velocity.y / boid.velocity.length() );
@@ -641,6 +741,50 @@
 				renderer.render( scene, camera );
 
 			}
+			
+
+
+			///////////////////////// NETWORK HANDLING /////////////////////////
+
+			/*
+				Called when the connection is first opened, simply return the app 
+				name to the server 
+			*/
+			function onOpen(connection) {
+				  console.log("Connection with server opened");
+
+				  connection.sendMessage({
+				    type: 'hello',
+				    data: {
+				      game: 'oiseaux'
+				    }
+				  });
+			}
+			// When you receive something (including pings), this function will be called
+            // with the parsed JSON message all ready for you in parsedMessage.
+            function onMessage(connection, parsedMessage) {
+            
+            	if (parsedMessage.type == "addBird") {
+
+                    // The handler to add a creature 
+                    console.log("addBird");
+                    birdId = parsedMessage.data.userId;
+                    y = parseFloat(parsedMessage.data.movementY);
+                    x = parseFloat(parsedMessage.data.movementX);
+                    z = parseFloat(parsedMessage.data.movementZ);
+                    maxSpeed = parseFloat(parsedMessage.data.maxSpeed);
+
+                    color = parseInt(parsedMessage.data.birdColor);
+
+                    addBird(null,birdId,maxSpeed,x,y,z,color);
+                    console.log("addBird");
+
+ 
+            	} else if(parsedMessage.type == "selectBird") {
+            		console.log("select bird");
+            		selectBird(parsedMessage.data.userId);
+            	}
+            }
 
 		</script>
 
