@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<style>
+			body {
+				min-height: 100%;
+				min-width: 100%;
+				color: #808080;
+				font-family:Monospace;
+				font-size:13px;
+				text-align:center;
+
+				background-color: #000000;
+				margin: 0px;
+				overflow: hidden;
+			}
+			canvas {width:100%; height: 100%;background-color: #000000}
+			body:after
+			{
+				content: '';
+				position: absolute;
+				left: 0;
+				top: 0;
+				bottom: 0;
+				right: 0;
+				background-image: url(mask-v2.png);
+				background-size: contain;
+				background-position: 0% 0%;
+				background-repeat: no-repeat;
+			}
+
+			#info {
+				position: absolute;
+				top: 0px; width: 100%;
+				padding: 5px;
+			}
+		</style>
+	</head>
+	<body>
+
+		<div id="container"></div>
+		
+		<script src="lib/three.js/build/three.js"></script>
+		<!-- Web socket connection library -->
+        
+        <script src="lib/websocketConnection.js"></script>
+        <!-- ThreeJS Libs -->
+		<script src="lib/three.js/Projector.js"></script>
+		<script src="lib/three.js/CanvasRenderer.js"></script>
+		<script src="lib/three.js/stats.min.js"></script>
+
+		<script src="obj/Bird.js"></script>
+
+		<script>
+
+			// Based on http://www.openprocessing.org/visuals/?visualID=6910
+
+			var Boid = function() {
+
+				var vector = new THREE.Vector3(),
+				_acceleration, _width = 500, _height = 500, _depth = 200, _goal, _neighborhoodRadius = 100,
+				_maxSpeed = 4, _maxSteerForce = 0.1, _avoidWalls = false, _color;
+                
+                
+                // From 0.1 to 0.9
+                var _flockingProbability = 0.5; 
+
+                // user defined movement vector 
+                var _movementVector = new THREE.Vector3();
+
+                // generate a unique identifier for the boid 
+                this.uniqueIdentifier = (Math.random()-0.000001).toString(36).slice(2); 
+				
+                this.position = new THREE.Vector3();
+				this.velocity = new THREE.Vector3();
+				_acceleration = new THREE.Vector3();
+
+				this.setGoal = function ( target ) {
+
+					_goal = target;
+
+				};
+				this.setColor = function (value) {
+					_color = value;
+					this.color = _color;
+				}
+                this.setMovementVector = function ( value ) {
+             
+                    _movementVector = value; 
+                    this.movementVector = _movementVector;
+                }
+
+				this.setAvoidWalls = function ( value ) {
+
+					_avoidWalls = value;
+
+				};
+
+				this.setWorldSize = function ( width, height, depth ) {
+
+					_width = width;
+					_height = height;
+					_depth = depth;
+
+				};
+
+				this.run = function ( boids ) {
+
+					if ( _avoidWalls ) {
+
+						vector.set( - _width, this.position.y, this.position.z );
+						vector = this.avoid( vector );
+						vector.multiplyScalar( 5 );
+						_acceleration.add( vector );
+
+						vector.set( _width, this.position.y, this.position.z );
+						vector = this.avoid( vector );
+						vector.multiplyScalar( 5 );
+						_acceleration.add( vector );
+
+						vector.set( this.position.x, - _height, this.position.z );
+						vector = this.avoid( vector );
+						vector.multiplyScalar( 5 );
+						_acceleration.add( vector );
+
+						vector.set( this.position.x, _height, this.position.z );
+						vector = this.avoid( vector );
+						vector.multiplyScalar( 5 );
+						_acceleration.add( vector );
+
+						vector.set( this.position.x, this.position.y, - _depth );
+						vector = this.avoid( vector );
+						vector.multiplyScalar( 5 );
+						_acceleration.add( vector );
+
+						vector.set( this.position.x, this.position.y, _depth );
+						vector = this.avoid( vector );
+						vector.multiplyScalar( 5 );
+						_acceleration.add( vector );
+
+					}/* else {
+
+						this.checkBounds();
+
+					}
+					*/
+
+					if ( Math.random() > 0.9 ) {
+
+						this.flock( boids );
+
+					}
+
+					this.move();
+
+				};
+
+				this.flock = function ( boids ) {
+
+					if ( _goal ) {
+
+						_acceleration.add( this.reach( _goal, 0.005 ) );
+
+					}
+
+					_acceleration.add( this.alignment( boids ) );
+					_acceleration.add( this.cohesion( boids ) );
+					_acceleration.add( this.separation( boids ) );
+
+				};
+
+				this.move = function () {
+
+					this.velocity.add( _acceleration );
+
+					var l = this.velocity.length();
+
+					if ( l > _maxSpeed ) {
+
+						this.velocity.divideScalar( l / _maxSpeed );
+
+					}
+
+					this.position.add( this.velocity );
+                    
+                    // Unique signature of the bird 
+                    this.position.add(_movementVector);
+
+					_acceleration.set( 0, 0, 0 );
+
+				};
+
+				this.checkBounds = function () {
+                    
+                    // This is not called at all
+					if ( this.position.x >   _width ) this.position.x = - _width;
+					if ( this.position.x < - _width ) this.position.x =   _width;
+					if ( this.position.y >   _height ) this.position.y = - _height;
+					if ( this.position.y < - _height ) this.position.y =  _height;
+					if ( this.position.z >  _depth ) this.position.z = - _depth;
+					if ( this.position.z < - _depth ) this.position.z =  _depth;
+
+				};
+
+				//
+
+				this.avoid = function ( target ) {
+
+					var steer = new THREE.Vector3();
+
+					steer.copy( this.position );
+					steer.sub( target );
+
+					steer.multiplyScalar( 1 / this.position.distanceToSquared( target ) );
+
+					return steer;
+
+				};
+
+				this.repulse = function ( target ) {
+
+					var distance = this.position.distanceTo( target );
+
+					if ( distance < 150 ) {
+
+						var steer = new THREE.Vector3();
+
+						steer.subVectors( this.position, target );
+						steer.multiplyScalar( 0.5 / distance );
+
+						_acceleration.add( steer );
+
+					}
+
+				};
+
+				this.reach = function ( target, amount ) {
+
+					var steer = new THREE.Vector3();
+
+					steer.subVectors( target, this.position );
+					steer.multiplyScalar( amount );
+
+					return steer;
+
+				};
+
+				this.alignment = function ( boids ) {
+
+					var boid, velSum = new THREE.Vector3(),
+					count = 0;
+
+					for ( var i = 0, il = boids.length; i < il; i++ ) {
+
+						if ( Math.random() > _flockingProbability ) continue;
+
+						boid = boids[ i ];
+
+						distance = boid.position.distanceTo( this.position );
+
+						if ( distance > 0 && distance <= _neighborhoodRadius ) {
+
+							velSum.add( boid.velocity );
+							count++;
+
+						}
+
+					}
+
+					if ( count > 0 ) {
+
+						velSum.divideScalar( count );
+
+						var l = velSum.length();
+
+						if ( l > _maxSteerForce ) {
+
+							velSum.divideScalar( l / _maxSteerForce );
+
+						}
+
+					}
+
+					return velSum;
+
+				};
+
+				this.cohesion = function ( boids ) {
+
+					var boid, distance,
+					posSum = new THREE.Vector3(),
+					steer = new THREE.Vector3(),
+					count = 0;
+
+					for ( var i = 0, il = boids.length; i < il; i ++ ) {
+
+						if ( Math.random() > _flockingProbability) continue;
+
+						boid = boids[ i ];
+						distance = boid.position.distanceTo( this.position );
+
+						if ( distance > 0 && distance <= _neighborhoodRadius ) {
+
+							posSum.add( boid.position );
+							count++;
+
+						}
+
+					}
+
+					if ( count > 0 ) {
+
+						posSum.divideScalar( count );
+
+					}
+
+					steer.subVectors( posSum, this.position );
+
+					var l = steer.length();
+
+					if ( l > _maxSteerForce ) {
+
+						steer.divideScalar( l / _maxSteerForce );
+
+					}
+
+					return steer;
+
+				};
+
+				this.separation = function ( boids ) {
+
+					var boid, distance,
+					posSum = new THREE.Vector3(),
+					repulse = new THREE.Vector3();
+
+					for ( var i = 0, il = boids.length; i < il; i ++ ) {
+
+						if ( Math.random() > _flockingProbability ) continue;
+
+						boid = boids[ i ];
+						distance = boid.position.distanceTo( this.position );
+
+						if ( distance > 0 && distance <= _neighborhoodRadius ) {
+
+							repulse.subVectors( this.position, boid.position );
+							repulse.normalize();
+							repulse.divideScalar( distance );
+							posSum.add( repulse );
+
+						}
+
+					}
+
+					return posSum;
+
+				}
+
+			}
+
+		</script>
+
+		<script>
+
+			var SCREEN_WIDTH = window.innerWidth,
+			SCREEN_HEIGHT = window.innerHeight,
+			SCREEN_WIDTH_HALF = SCREEN_WIDTH  / 2,
+			SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
+
+
+			var MAX_BIRDS = 2000;						// the amount of birds reach this limit 
+			var BIRD_CREATION_ON_INACTIVTY_TIMER = 1;   // Create bird if not active for 10 min 
+			var BIRD_CREATION_COUNT = 5;				// How many birds to create when inactivity timer is reached 
+			var BIRD_UNSELECTION_TIMER = 1;				// How many minutes the birds stays selected
+
+			var inactivityTimer = window.setTimeout(createBirdsAutomatically,(1000*60)*BIRD_CREATION_ON_INACTIVTY_TIMER);         
+			var unselectTimer = null;
+			var selectedBirdId = null;
+			var automaticBirdCreation = false;		
+
+			var camera, scene, renderer,
+			birds, bird, selectionCircle, selectionCirclePosition;
+      
+
+			var boid, boids;
+			// Open persistent web socket connection to the server
+            var connection = new WebsocketConnection(
+              'jebediah.pimp-my-wall.ch',
+              8000,
+              {
+                open: onOpen,
+                close: function () {},
+                message: onMessage
+              }, {
+                autoConnect: true,
+                autoReconnect: true
+              }
+            );
+			var stats;
+			init(restoreStateFromLocalStorage());
+			animate();
+
+			function init(boidsUnserialized) {
+
+				camera = new THREE.PerspectiveCamera( 25, SCREEN_WIDTH / SCREEN_HEIGHT, 1, 10000 );
+				camera.position.z = 400;
+
+				scene = new THREE.Scene();
+
+				birds = [];
+				boids = [];
+
+                if (boidsUnserialized) {
+                    // Recreate boids 
+                    var limit = boidsUnserialized.length;
+                    
+                    for ( var i = 0; i < limit; i++ ) {
+
+                        _boid = boidsUnserialized[i];
+
+					    boid = boids[ i ] = new Boid();
+
+					    if(_boid.color) {
+					    	boid.setColor(_boid.color);
+					    } else {
+					    	boid.color = 0xffffff;
+					    }
+
+					    boid.position.x = _boid.position.x;
+					    boid.position.y = _boid.position.y;
+				    	boid.position.z = _boid.position.z;
+					    boid.velocity.x = _boid.velocity.x;
+					    boid.velocity.y = _boid.velocity.y;
+					    boid.velocity.z = _boid.velocity.z;
+                        boid.uniqueIdentifier = _boid.uniqueIdentifier;
+					    boid.setAvoidWalls( true );
+					    boid.setWorldSize( SCREEN_WIDTH, SCREEN_HEIGHT, 200 );
+                    
+                        var movementVector = new THREE.Vector3(); 
+
+                        // Set the speed and the user defined movement vector 
+                        movementVector.set(_boid.movementVector.x,_boid.movementVector.y,_boid.movementVector.z);
+                        boid.setMovementVector(movementVector);
+                        boid._maxSteerForce = _boid._maxSteerForce; 
+                        boid._maxSpeed = _boid._maxSpeed;
+					    
+                        bird = birds[ i ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color: boid.color, side: THREE.DoubleSide } ) );
+					
+                        bird.phase = Math.floor( Math.random() * 62.83 );
+
+                        // So we can track witch boid is associated to the bird
+                        bird.geometry.uniqueIdentifier = boid.uniqueIdentifier;
+
+					    scene.add( bird );
+				    }
+                }
+
+                // Initialize selection circle 
+                circle = new THREE.RingGeometry(8,10,42);
+                circle.position = new THREE.Vector3();
+                var circleMaterial = new THREE.MeshBasicMaterial( {color: 0xffff00, side: THREE.DoubleSide });
+                selectionCircle = new THREE.Mesh(circle,circleMaterial);
+
+                // Set the timer to change the flocking probabily for each boid
+                window.setTimeout(randomizeFlockingProbability,(1000*60)*1);
+
+                // Set the timer to save the current state to local storage each minute
+                window.setTimeout(saveCurrentStateToLocalStorage,(1000*60)*1);
+                
+                
+				renderer = new THREE.WebGLRenderer();
+				renderer.setClearColor( 0x000000,1 );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( SCREEN_WIDTH, SCREEN_HEIGHT );
+
+				document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+                document.addEventListener( 'mouseup', addBird, false);
+
+				document.body.appendChild( renderer.domElement );
+
+				stats = new Stats();
+				document.getElementById( 'container' ).appendChild(stats.dom);
+
+				//
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+            /*
+                Called each x minutes it changes the tendency of the bird to flocking
+            */
+            function randomizeFlockingProbability() {
+                
+                var newFlockingProbability = Math.random();
+			    for ( var i = 0, il = boids.length; i < il; i ++ ) {
+                    var boid = boids[i];
+                    boid._flockingProbability = newFlockingProbability; 
+                }
+                // reset the timer to the change  flocking probabily for each boid
+                window.setTimeout(randomizeFlockingProbability,(1000*60)*1); 
+            }
+            /*
+				Creates a batch of 10 birds if there was no activity 
+            */
+            function createBirdsAutomatically() {
+            	
+            	if(boids.length > MAX_BIRDS) {
+            		return;
+            	}
+      
+            	// reSet the adds birds 
+                inactivityTimer = window.setTimeout(createBirdsAutomatically,(1000*60)*BIRD_CREATION_ON_INACTIVTY_TIMER); 
+                for(var i = 0; i < BIRD_CREATION_COUNT; i++) {
+                	automaticBirdCreation = true;	
+                	addBird();
+                	console.log("added bird automatically");
+                	automaticBirdCreation = false;
+                }
+            }
+     
+            /*
+                Sets the flag on the bird matching the passed uniqueIndentifier
+                and adds the selection circle mesh into the scene
+            */
+            function selectBird(uniqueIdentifier) {
+                
+
+                for (var i = 0; i < boids.length; i++) {
+                	boid = boids[i];
+                	// Unselect previous bird
+                	birds[i].isSelected = false;
+                	if (boid.uniqueIdentifier == uniqueIdentifier) {
+                		// Matched
+                		scene.add(selectionCircle);
+                		birds[i].isSelected = true;
+                		selectedBirdId = uniqueIdentifier;
+
+                		window.clearTimeout(unselectTimer);
+                		unselectTimer = window.setTimeout(unselectBird,(1000*60)*BIRD_UNSELECTION_TIMER); 
+
+                		break;
+                	}
+                }
+                
+            }
+      		/*
+				Deselects a bird.
+      		*/
+            function unselectBird() {
+ 
+                for (var i = 0; i < boids.length; i++) {
+                	boid = boids[i];
+                	if (boid.uniqueIdentifier == selectedBirdId) {
+                		// Matched
+                		scene.remove(selectionCircle);
+                		birds[i].isSelected = false;
+                		break;
+                	}
+                }
+                
+            }
+
+            /*
+               Creates and adds a bird to the scene
+             */
+            function addBird(event,birdId,maxSpeed,movementX,movementY,movementZ,birdColor) {
+
+        		// Stop & restart inactivity timer for automatic bird creation 
+        		window.clearTimeout(inactivityTimer);
+        		inactivityTimer = window.setTimeout(createBirdsAutomatically,(1000*60)*BIRD_CREATION_ON_INACTIVTY_TIMER); 
+
+				console.log(maxSpeed);
+				boidIndex = boids.length;
+                boid = boids[ boidIndex ] = new Boid();
+
+				boid.position.x = Math.random() * 400 - 200;
+				boid.position.y = Math.random() * 400 - 200;
+				boid.position.z = Math.random() * 400 - 200;
+                
+				boid.velocity.x = Math.random() * 2 - 1;
+				boid.velocity.y = Math.random() * 2 - 1;
+				boid.velocity.z = Math.random() * 2 - 1;
+				boid.setAvoidWalls( true );
+				boid.setWorldSize( SCREEN_WIDTH, SCREEN_HEIGHT, 200 );
+                
+                // Created from a click - position is randomized
+                var movementVector = new THREE.Vector3(); 
+                movementVector.set(Math.random(),Math.random(),Math.random());
+               
+                // Set the speed and the user defined movement vector 
+                boid.setMovementVector(movementVector);
+                boid._maxSteerForce = Math.random(); 
+                boid._maxSpeed = Math.floor(Math.random()*15);
+                color = Math.floor(Math.random()*16777215);
+                
+                if(birdId) {
+                	// Bird is created by the web app 
+                	boid._maxSpeed = maxSpeed;
+                	movementVector.set(movementX,movementY,movementZ);
+                	boid.setMovementVector(movementVector);
+                	boid.uniqueIdentifier = birdId;
+                	color = birdColor;
+
+                }
+				boid.setColor(color);
+                bird = birds[ boidIndex ] = new THREE.Mesh( new Bird(), new THREE.MeshBasicMaterial( { color:color, side: THREE.DoubleSide } ) );
+				
+				if(!automaticBirdCreation) {
+                	selectBird(boid.uniqueIdentifier);
+				}
+
+                    
+                bird.phase = Math.floor( Math.random() * 62.83 );
+                // Set random goal to each bird 
+                // boid.setGoal(new THREE.Vector3( Math.random() * 500-100 , Math.random() * 500-100, Math.random() * 500 - 100));
+                // So we can track witch boid is associated to the bird
+                
+				scene.add( bird );
+
+            }
+
+            /*
+              Saves the current state of to local storage, each boid and bird. 
+            */
+            function saveCurrentStateToLocalStorage() {
+                
+                var localStorage = window.localStorage;
+                // Test if local storage exists
+                if(!testLocalStorage) {
+                    throw "Cannot run without local storage support...";
+                }
+                var boids = JSON.stringify(this.boids);
+                localStorage.setItem("boids",boids);
+
+                // reset the timer to save the current state to local storage each minute
+                window.setTimeout(saveCurrentStateToLocalStorage,(1000*60)*1);
+            }
+            function testLocalStorage() {
+            
+                try {
+                    var storage = window.localStorage, x='__storage_test__';
+                    storage.setItem(x,x);
+                    storage.removeItem(x);
+                    return true;
+                }
+                catch(e) {
+                    return false;                
+                }
+            }
+
+            /*
+              Restores state saved prior 
+            */
+            function restoreStateFromLocalStorage() {
+                
+                var localStorage = window.localStorage;
+
+                if(!testLocalStorage) {
+                    throw "Cannot run without local storage support...";
+                }
+
+                var boids = localStorage.getItem("boids")
+                if (!boids) {
+                    return false;
+                }
+
+                // Recreate boid objects 
+                boids = JSON.parse(boids);
+                return boids;
+
+            }
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function onDocumentMouseMove( event ) {
+                return;
+
+				var vector = new THREE.Vector3( event.clientX - SCREEN_WIDTH_HALF, - event.clientY + SCREEN_HEIGHT_HALF, 0 );
+
+				for ( var i = 0, il = boids.length; i < il; i++ ) {
+
+					boid = boids[ i ];
+
+					vector.z = boid.position.z;
+
+					boid.setGoal( vector );
+
+				}
+
+			}
+            
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				stats.begin();
+				render();
+				stats.end();
+
+			}
+
+			function render() {
+
+				for ( var i = 0, il = birds.length; i < il; i++ ) {
+
+					boid = boids[ i ];
+					boid.run( boids );
+
+					bird = birds[ i ];
+					bird.position.copy( boids[ i ].position );
+
+                    // Render shape
+                    if (bird.isSelected) {
+
+                        selectionCircle.position.copy(boids[i].position);
+                    } 
+
+					//color = bird.material.color;
+					//color.r = color.g = color.b = ( 500 - bird.position.z ) / 1000;
+
+					bird.rotation.y = Math.atan2( - boid.velocity.z, boid.velocity.x );
+					bird.rotation.z = Math.asin( boid.velocity.y / boid.velocity.length() );
+
+					bird.phase = ( bird.phase + ( Math.max( 0, bird.rotation.z ) + 0.1 )  ) % 62.83;
+					bird.geometry.vertices[ 5 ].y = bird.geometry.vertices[ 4 ].y = Math.sin( bird.phase ) * 5;
+
+				}
+
+				renderer.render( scene, camera );
+
+			}
+			
+
+
+			///////////////////////// NETWORK HANDLING /////////////////////////
+
+			/*
+				Called when the connection is first opened, simply return the app 
+				name to the server 
+			*/
+			function onOpen(connection) {
+				  console.log("Connection with server opened");
+
+				  connection.sendMessage({
+				    type: 'hello',
+				    data: {
+				      game: 'oiseaux'
+				    }
+				  });
+			}
+			// When you receive something (including pings), this function will be called
+            // with the parsed JSON message all ready for you in parsedMessage.
+            function onMessage(connection, parsedMessage) {
+            
+            	if (parsedMessage.type == "addBird") {
+
+                    // The handler to add a creature 
+                    console.log("addBird");
+                    birdId = parsedMessage.data.userId;
+                    y = parseFloat(parsedMessage.data.movementY);
+                    x = parseFloat(parsedMessage.data.movementX);
+                    z = parseFloat(parsedMessage.data.movementZ);
+                    maxSpeed = parseFloat(parsedMessage.data.maxSpeed);
+
+                    color = parseInt(parsedMessage.data.birdColor);
+
+                    addBird(null,birdId,maxSpeed,x,y,z,color);
+                    console.log("addBird");
+
+ 
+            	} else if(parsedMessage.type == "selectBird") {
+            		console.log("select bird");
+            		selectBird(parsedMessage.data.userId);
+            	}
+            }
+
+		</script>
+
+	</body>
+</html>
