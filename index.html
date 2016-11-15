@@ -393,6 +393,9 @@
   var selectedBirdId = null;
   var automaticBirdCreation = false;
 
+  var AUTO_IDLE_TIME = 10000;
+  var AUTO_INTERVAL = 30000;
+
   var SCREEN_MARGINS = 400;
 
   var camera, scene, renderer,
@@ -630,7 +633,7 @@
     boid.setMovementVector(movementVector);
     boid._maxSteerForce = Math.random();
     boid._maxSpeed = Math.floor(Math.random() * 15);
-    color = Math.floor(Math.random() * 16777215);
+    color = Math.floor(Math.random() * 0xffffff);
 
     if (birdId) {
       // Bird is created by the web app 
@@ -835,6 +838,8 @@
     });
   }
 
+  var lastBird = Date.now();
+
   // When you receive something (including pings), this function will be called
   // with the parsed JSON message all ready for you in parsedMessage.
   function onMessage(connection, parsedMessage) {
@@ -853,8 +858,10 @@
 
       addBird(null, birdId, maxSpeed, x, y, z, color.getHex());
       selectBird(parsedMessage.data.userId);
+      lastBird = Date.now();
     } else if (parsedMessage.type == "selectBird") {
       selectBird(parsedMessage.data.userId);
+      lastBird = Date.now();
     } else if (parsedMessage.type == 'hello') {
       if (parsedMessage.data.state && parsedMessage.data.state.boids) {
         init(parsedMessage.data.state.boids);
@@ -864,6 +871,12 @@
       animate();
     }
   }
+
+  setInterval(function () {
+    if (Date.now() - lastBird > AUTO_IDLE_TIME) {
+      addBird();
+    }
+  }, AUTO_INTERVAL)
   </script>
 </body>
 
