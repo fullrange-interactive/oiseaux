@@ -198,10 +198,10 @@
       this.position.add(this.velocity);
 
       // Unique signature of the bird 
-      this.position.add(_movementVector);
+      // this.position.add(_movementVector);
 
       _acceleration.set(0, 0, 0);
-
+      // if (toScreenPosition(this, camera))
     };
 
     this.checkBounds = function() {
@@ -342,6 +342,10 @@
 
     };
 
+    this.flipPosition = function(coord) {
+      this.position[coord] = -this.position[coord];
+    }
+
     this.separation = function(boids) {
 
       var boid, distance,
@@ -389,6 +393,8 @@
   var selectedBirdId = null;
   var automaticBirdCreation = false;
 
+  var SCREEN_MARGINS = 400;
+
   var camera, scene, renderer,
     birds, bird, selectionCircle, selectionCirclePosition;
 
@@ -407,8 +413,6 @@
     }
   );
   var stats;
-  init(restoreStateFromLocalStorage());
-  animate();
 
   function init(boidsUnserialized) {
 
@@ -481,7 +485,7 @@
     setInterval(randomizeFlockingProbability, (1000 * 60) * 1);
 
     // Set the timer to save the current state to local storage each minute
-    setInterval(saveCurrentStateToLocalStorage, (1000 * 60) * 1);
+    // setInterval(saveCurrentStateToLocalStorage, (1000 * 60) * 1);
 
 
     renderer = new THREE.WebGLRenderer({antialias: true});
@@ -535,6 +539,26 @@
     }
   }
 
+  function toScreenPosition(obj, camera)
+  {
+    var vector = new THREE.Vector3();
+
+    var widthHalf = 0.5*renderer.context.canvas.width;
+    var heightHalf = 0.5*renderer.context.canvas.height;
+
+    obj.updateMatrixWorld();
+    vector.setFromMatrixPosition(obj.matrixWorld);
+    vector.project(camera);
+
+    vector.x = ( vector.x * widthHalf ) + widthHalf;
+    vector.y = - ( vector.y * heightHalf ) + heightHalf;
+
+    return { 
+      x: vector.x,
+      y: vector.y
+    };
+  };
+
   /*
     Sets the flag on the bird matching the passed uniqueIndentifier
     and adds the selection circle mesh into the scene
@@ -542,7 +566,8 @@
   function selectBird(uniqueIdentifier) {
 
 
-    for (var i = 0; i < boids.length; i++) {
+      console.log(uniqueIdentifier)
+    for (var i = boids.length - 1; i >= 0; i--) {
       boid = boids[i];
       // Unselect previous bird
       birds[i].isSelected = false;
@@ -554,7 +579,7 @@
 
         window.clearTimeout(unselectTimer);
         unselectTimer = window.setTimeout(unselectBird, (1000 * 60) * BIRD_UNSELECTION_TIMER);
-
+        console.log('bird found')
         break;
       }
     }
@@ -587,13 +612,13 @@
     boidIndex = boids.length;
     boid = boids[boidIndex] = new Boid();
 
-    boid.position.x = Math.random() * 400 - 200;
-    boid.position.y = Math.random() * 400 - 200;
-    boid.position.z = Math.random() * 400 - 200;
+    boid.position.x = (Math.random() * SCREEN_WIDTH - SCREEN_WIDTH / 2) / 6;
+    boid.position.y = 0;
+    boid.position.z = 0;
 
-    boid.velocity.x = Math.random() * 2 - 1;
-    boid.velocity.y = Math.random() * 2 - 1;
-    boid.velocity.z = Math.random() * 2 - 1;
+    boid.velocity.x = movementX;
+    boid.velocity.y = movementY;
+    boid.velocity.z = movementZ;
     boid.setAvoidWalls(true);
     boid.setWorldSize(SCREEN_WIDTH, SCREEN_HEIGHT, 200);
 
@@ -632,6 +657,26 @@
     // So we can track witch boid is associated to the bird
 
     scene.add(bird);
+
+    saveCurrentStateToServer();
+  }
+
+  function saveCurrentStateToServer() {
+
+    var boidsCopy = JSON.parse(JSON.stringify(boids));
+    for (var i in boidsCopy) {
+      delete boidsCopy[i].flapAt;
+    }
+
+    connection.sendMessage({
+      type: 'saveState',
+      data: {
+        boids: boidsCopy
+      }
+    });
+
+    // // reset the timer to save the current state to local storage each minute
+    // window.setTimeout(saveCurrentStateToLocalStorage, (1000 * 60) * 1);
   }
 
   /*
@@ -751,6 +796,22 @@
       // console.log(i + ':' + boid.flapAt)
       bird.geometry.vertices[5].y = bird.geometry.vertices[4].y = Math.sin(bird.phase) * 5;
       bird.geometry.verticesNeedUpdate = true;
+
+
+      // console.log(toScreenPosition(bird, camera))
+      var screenPos = toScreenPosition(bird, camera);
+      if (screenPos.x > SCREEN_WIDTH + SCREEN_MARGINS) {
+        boid.flipPosition('x');
+      }
+      if (screenPos.y > SCREEN_HEIGHT + SCREEN_MARGINS) {
+        boid.flipPosition('y');
+      }
+      if (screenPos.x < -SCREEN_MARGINS) {
+        boid.flipPosition('x');
+      }
+      if (screenPos.y < -SCREEN_MARGINS) {
+        boid.flipPosition('y');
+      }
     }
 
     renderer.render(scene, camera);
@@ -782,21 +843,25 @@
 
       // The handler to add a creature 
       console.log("addBird");
-      birdId = parsedMessage.data.userId;
-      y = parseFloat(parsedMessage.data.movementY);
-      x = parseFloat(parsedMessage.data.movementX);
-      z = parseFloat(parsedMessage.data.movementZ);
-      maxSpeed = parseFloat(parsedMessage.data.maxSpeed);
+      var birdId = parsedMessage.data.userId;
+      var y = parseFloat(parsedMessage.data.movementY);
+      var x = parseFloat(parsedMessage.data.movementX);
+      var z = parseFloat(parsedMessage.data.movementZ);
+      var maxSpeed = parseFloat(parsedMessage.data.maxSpeed);
+      
+      var color = new THREE.Color('hsl(' + parsedMessage.data.h + ',' + parsedMessage.data.s + '%,' + parsedMessage.data.l + '%)');
 
-      color = parseInt(parsedMessage.data.birdColor);
-
-      addBird(null, birdId, maxSpeed, x, y, z, color);
-      console.log("addBird");
-
-
-    } else if (parsedMessage.type == "selectBird") {
-      console.log("select bird");
+      addBird(null, birdId, maxSpeed, x, y, z, color.getHex());
       selectBird(parsedMessage.data.userId);
+    } else if (parsedMessage.type == "selectBird") {
+      selectBird(parsedMessage.data.userId);
+    } else if (parsedMessage.type == 'hello') {
+      if (parsedMessage.data.state && parsedMessage.data.state.boids) {
+        init(parsedMessage.data.state.boids);
+      } else {
+        init([]);
+      }
+      animate();
     }
   }
   </script>
