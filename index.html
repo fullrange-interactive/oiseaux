@@ -175,7 +175,7 @@
       var l = this.velocity.length();
 
       if (l > _maxSpeed) 
-        this.velocity.divideScalar(l / _maxSpeed);
+        this.velocity.divideScalar(l / (_maxSpeed+0.0000001));
 
       this.position.add(this.velocity);
 
@@ -198,7 +198,7 @@
 
       steer.copy(this.position);
       steer.sub(target);
-      steer.multiplyScalar(1 / this.position.distanceToSquared(target));
+      steer.multiplyScalar(1 / (this.position.distanceToSquared(target)+0.0000001));
 
       return steer;
     };
@@ -212,7 +212,7 @@
         var steer = new THREE.Vector3();
 
         steer.subVectors(this.position, target);
-        steer.multiplyScalar(0.5 / distance);
+        steer.multiplyScalar(0.5 / (distance+0.0000001));
 
         _acceleration.add(steer);
       }
@@ -256,7 +256,7 @@
         var l = velSum.length();
 
         if (l > _maxSteerForce)
-          velSum.divideScalar(l / _maxSteerForce);
+          velSum.divideScalar(l / (_maxSteerForce+0.0000001));
       }
 
       return velSum;
@@ -292,7 +292,7 @@
       var l = steer.length();
 
       if (l > _maxSteerForce)
-        steer.divideScalar(l / _maxSteerForce);
+        steer.divideScalar(l / (_maxSteerForce+0.0000001));
 
       return steer;
     };
@@ -360,7 +360,7 @@ loader.load(
   },
   // Function called when download errors
   function ( xhr ) {
-    console.log( 'An error happened' );
+    console.log( '[TextureLoader] An error happened' );
   }
 );
 
@@ -488,7 +488,7 @@ loader.load(
 
     // Search for the requested bird, add in in the requested list if needed
     // 
-    console.log("Select bird from id:"+uniqueIdentifier);
+    console.log("[selectBird] Select bird from id:"+uniqueIdentifier);
     
     var boid;
     var bird;
@@ -500,11 +500,11 @@ loader.load(
 
       if (boid.uniqueIdentifier == uniqueIdentifier)
       {
-        console.log("Found");
+        // console.log("Found");
 
         if(!bird.isSelected)
         {
-          console.log("Not selected");
+          // console.log("Not selected");
 
           bird.isSelected = true;
   
@@ -549,7 +549,7 @@ loader.load(
 
       item.unselectTimer = window.setTimeout(function(){
 
-        console.log("Unselecting with id "+item.id+" at index "+selectedBirds.indexOf(item));
+        console.log("[selectBird] Unselecting with id "+item.id+" at index "+selectedBirds.indexOf(item));
 
         item.bird.isSelected = false;
 
@@ -692,7 +692,7 @@ loader.load(
 
 
       bird.rotation.y = Math.atan2(-boid.velocity.z, boid.velocity.x);
-      bird.rotation.z = Math.asin(boid.velocity.y / boid.velocity.length());
+      bird.rotation.z = Math.asin(boid.velocity.y / (boid.velocity.length()+0.0000001));
 
       bird.phase = (bird.phase + (Math.max(0, bird.rotation.z) + 0.1)) % 62.83;
       bird.geometry.vertices[5].y = bird.geometry.vertices[4].y = Math.sin(bird.phase) * 5;
@@ -702,8 +702,8 @@ loader.load(
     if(repulseActive)
       onDocumentMouseMove(repulseCoords.x,repulseCoords.y);
 
-    if(j%60 == 0)
-      console.log("Selected length "+selectedBirds.length);
+    // if(j%60 == 0)
+    //   console.log("Selected length "+selectedBirds.length);
 
     var on,off;
     on = off = 0;
@@ -712,8 +712,8 @@ loader.load(
     {
       var selectedBird = selectedBirds[i];
 
-      if(j%60 == 0)
-        console.log("Bird at index "+i+" id"+selectedBird.id+" position "+selectedBird.boid.position.x+","+selectedBird.boid.position.y);
+      // if(j%60 == 0)
+      //   console.log("Bird at index "+i+" id"+selectedBird.id+" position "+selectedBird.boid.position.x+","+selectedBird.boid.position.y);
 
       if(selectedBird.boid.position.x > -SCREEN_WIDTH_HALF
         && selectedBird.boid.position.x < SCREEN_WIDTH_HALF
@@ -727,8 +727,8 @@ loader.load(
 
         selectedBird.circle.rotation.z += 0.02;
 
-        if(j%60 == 0)
-          console.log("Circle pos:"+selectedBird.boid.position.x+" "+selectedBird.boid.position.y+" "+selectedBird.boid.position.z);
+        // if(j%60 == 0)
+        //   console.log("Circle pos:"+selectedBird.boid.position.x+" "+selectedBird.boid.position.y+" "+selectedBird.boid.position.z);
 
         if(selectedBird.isArrowVisible)
         {
@@ -783,11 +783,11 @@ loader.load(
           pos.y = SCREEN_HEIGHT_HALF;
         }
 
-    if(j%60 == 0)
-    {
-      // console.log(position);
-          console.log("Arow pos "+pos.x+","+pos.y+"  Screen: "+SCREEN_WIDTH_HALF+"x"+SCREEN_HEIGHT_HALF); 
-    }        
+    // if(j%60 == 0)
+    // {
+    //   // console.log(position);
+    //       console.log("Arow pos "+pos.x+","+pos.y+"  Screen: "+SCREEN_WIDTH_HALF+"x"+SCREEN_HEIGHT_HALF); 
+    // }        
 
         selectedBird.arrow.position.x = pos.x;
         selectedBird.arrow.position.y = pos.y;
@@ -805,8 +805,8 @@ loader.load(
       }
 
     }
-    if(j%60 == 0)
-          console.log("On/off screen:"+on+","+off);  
+    // if(j%60 == 0)
+    //       console.log("On/off screen:"+on+","+off);  
     renderer.render(scene, camera);
   }
 
@@ -817,7 +817,7 @@ loader.load(
     name to the server 
   */
   function onOpen(connection) {
-    console.log("Connection with server opened");
+    // console.log("Connection with server opened");
 
     connection.sendMessage({
       type: 'hello',
