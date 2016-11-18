@@ -46,6 +46,11 @@
 </head>
 <body>
   <div id="container"></div>
+
+  <!-- Jquery must be provided -->
+  <script src="file:///home/pmw/repos/scheduler/jquery-3.1.1.min.js"></script>    
+  <script src="file:///home/pmw/repos/scheduler/scheduler.js"></script>      
+
   <script src="lib/three.js/build/three.js"></script>
   <!-- Web socket connection library -->
   <script src="lib/websocketConnection.js"></script>
@@ -55,6 +60,8 @@
   <script src="lib/three.js/stats.min.js"></script>
   <script src="obj/Bird.js"></script>
   <script>
+
+$("document").ready(function(){
   // Based on http://www.openprocessing.org/visuals/?visualID=6910
 
   var SCREEN_WIDTH = window.innerWidth,
@@ -895,7 +902,7 @@ loader.load(
 
   init();
   animate();
-
+});
   </script>
 </body>
 
