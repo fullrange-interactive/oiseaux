@@ -69,7 +69,7 @@ $("document").ready(function(){
     SCREEN_WIDTH_HALF = SCREEN_WIDTH / 2,
     SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
 
-  var MAX_BIRDS = 500; // the amount of birds reach this limit 
+  var MAX_BIRDS = 100; // the amount of birds reach this limit 
   var BIRD_CREATION_ON_INACTIVTY_TIMER = 1; // Create bird if not active for 10 min 
   var BIRD_CREATION_COUNT = 5; // How many birds to create when inactivity timer is reached 
   var BIRD_UNSELECTION_TIMER = 0.2; // How many minutes the birds stays selected
@@ -99,7 +99,7 @@ $("document").ready(function(){
     var _flapSpeed = Math.random() * 5 + 1;
 
     // generate a unique identifier for the boid 
-    this.uniqueIdentifier = (Math.random() - 0.000001).toString(36).slice(2);
+    // this.uniqueIdentifier = (Math.random() - 0.000001).toString(36).slice(2);
 
     this.position = new THREE.Vector3();
     this.velocity = new THREE.Vector3();
@@ -509,13 +509,15 @@ loader.load(
       {
         // console.log("Found");
 
+        var item;
+
         if(!bird.isSelected)
         {
           // console.log("Not selected");
 
           bird.isSelected = true;
   
-          var item = {
+          item = {
             id:uniqueIdentifier,
             circle:new THREE.Mesh(
               new THREE.RingGeometry(24, 30, 6),
@@ -542,37 +544,37 @@ loader.load(
 
             selectedBirds.push(item);
         }
-        break;
+        else
+        {
+          item = selectedBirds.find(function(e){if(e.bird == bird)return e;});
+        }
+
+        if(item.unselectTimer != null)
+          window.clearTimeout(item.unselectTimer);
+
+        item.unselectTimer = window.setTimeout((function(item){
+
+          return function(){
+            console.log("[selectBird] Unselecting with id "+item.id+" at index "+selectedBirds.indexOf(item));
+
+            item.bird.isSelected = false;
+
+            scene.remove(item.circle);
+            scene.remove(item.arrow);
+
+            item.circle.geometry.dispose();
+            item.circle.material.dispose();
+            item.arrow.geometry.dispose();
+            item.arrow.material.dispose();      
+
+            selectedBirds.splice(selectedBirds.indexOf(item),1);
+          }   
+
+        })(item), (1000 * 60) * BIRD_UNSELECTION_TIMER);        // break;
       }
     }
 
     // Find its index in the selected list
-    var item = selectedBirds.find(function(e){if(e.id == boid.uniqueIdentifier)return e;});
-
-    if(item)
-    {
-      if(item.unselectTimer != null)
-        window.clearTimeout(item.unselectTimer);
-
-      item.unselectTimer = window.setTimeout(function(){
-
-        console.log("[selectBird] Unselecting with id "+item.id+" at index "+selectedBirds.indexOf(item));
-
-        item.bird.isSelected = false;
-
-        scene.remove(item.circle);
-        scene.remove(item.arrow);
-
-        item.circle.geometry.dispose();
-        item.circle.material.dispose();
-        item.arrow.geometry.dispose();
-        item.arrow.material.dispose();      
-
-        selectedBirds.splice(selectedBirds.indexOf(item),1);       
-
-
-      }, (1000 * 60) * BIRD_UNSELECTION_TIMER);
-    }
   }
 
   /*
