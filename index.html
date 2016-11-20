@@ -64,6 +64,8 @@
 $("document").ready(function(){
   // Based on http://www.openprocessing.org/visuals/?visualID=6910
 
+  var ratio = 8192/838;
+
   var SCREEN_WIDTH = window.innerWidth,
     SCREEN_HEIGHT = window.innerHeight,
     SCREEN_WIDTH_HALF = SCREEN_WIDTH / 2,
@@ -405,7 +407,7 @@ loader.load(
     renderer = new THREE.WebGLRenderer({antialias: true});
     renderer.setClearColor(0x000000, 1);
     renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT);
+    renderer.setSize(SCREEN_WIDTH, SCREEN_HEIGHT/ratio);
 
     // window.addEventListener('mousemove', onDocumentMouseMove, false);
     // window.addEventListener('mouseup', addBird, false);
