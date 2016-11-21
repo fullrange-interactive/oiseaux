@@ -61,13 +61,13 @@
   <script src="obj/Bird.js"></script>
   <script>
 
-$("document").ready(function(){
+// $("document").ready(function(){
   // Based on http://www.openprocessing.org/visuals/?visualID=6910
 
-  var ratio = 8192/838;
+  var ratio = 4000/450;
 
   var SCREEN_WIDTH = window.innerWidth,
-    SCREEN_HEIGHT = window.innerHeight,
+    SCREEN_HEIGHT = window.innerWidth/ratio,
     SCREEN_WIDTH_HALF = SCREEN_WIDTH / 2,
     SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
 
@@ -866,7 +866,7 @@ loader.load(
       break;
       case "hello":
         if (parsedMessage.data.state && parsedMessage.data.state.boids) {
-          restoreBoids(parsedMessage.data.state.boids);
+          // restoreBoids(parsedMessage.data.state.boids);
         } 
       break;
       default:
@@ -875,15 +875,15 @@ loader.load(
     }
   }
 
-  // setInterval(function () {
-  //   if (Date.now() - lastBird > AUTO_IDLE_TIME && boids.length < MAX_BIRDS) {
-  //     addBird();
-  //   }
-  //   else
-  //   {
-  //     // selectBird(boids[randomIntFromInterval(0,boids.length-1)].uniqueIdentifier);        
-  //   }
-  // }, AUTO_INTERVAL);
+  setInterval(function () {
+    if (Date.now() - lastBird > AUTO_IDLE_TIME && boids.length < MAX_BIRDS) {
+      addBird();
+    }
+    else
+    {
+      // selectBird(boids[randomIntFromInterval(0,boids.length-1)].uniqueIdentifier);        
+    }
+  }, AUTO_INTERVAL);
 
   setInterval(function(){
 
@@ -907,7 +907,7 @@ loader.load(
 
   init();
   animate();
-});
+// });
   </script>
 </body>
 
