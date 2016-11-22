@@ -77,7 +77,7 @@
 var viewportHalfWidth = SCREEN_WIDTH/4;
 var viewportHalfHeight = SCREEN_HEIGHT/4;    
 
-  var cameraOffsetX = -2*SCREEN_WIDTH/5;
+  var cameraOffsetX = 2*SCREEN_WIDTH/5;
 
   var MAX_BIRDS = 100; // the amount of birds reach this limit 
   var BIRD_CREATION_ON_INACTIVTY_TIMER = 1; // Create bird if not active for 10 min 
@@ -403,7 +403,7 @@ var viewportHalfWidth = SCREEN_WIDTH/4;
 var viewportHalfHeight = SCREEN_HEIGHT/4;
   function init() {
 
-    camera = new THREE.OrthographicCamera(-viewportHalfWidth-cameraOffsetX, viewportHalfWidth-cameraOffsetX, viewportHalfHeight, -viewportHalfHeight, -1000, 1000);
+    camera = new THREE.OrthographicCamera(-viewportHalfWidth+cameraOffsetX, viewportHalfWidth+cameraOffsetX, viewportHalfHeight, -viewportHalfHeight, -1000, 1000);
     // camera.position.z = 1000;
 
     scene = new THREE.Scene();
@@ -736,8 +736,8 @@ var viewportHalfHeight = SCREEN_HEIGHT/4;
       // if(j%60 == 0)
       //   console.log("Bird at index "+i+" id"+selectedBird.id+" position "+selectedBird.boid.position.x+","+selectedBird.boid.position.y);
 
-      if(selectedBird.boid.position.x > -viewportHalfWidth-cameraOffsetX
-        && selectedBird.boid.position.x < viewportHalfWidth-cameraOffsetX
+      if(selectedBird.boid.position.x > -viewportHalfWidth+cameraOffsetX
+        && selectedBird.boid.position.x < viewportHalfWidth+cameraOffsetX
         && selectedBird.boid.position.y > -viewportHalfHeight
         && selectedBird.boid.position.y < viewportHalfHeight)
       {
@@ -783,15 +783,15 @@ var viewportHalfHeight = SCREEN_HEIGHT/4;
 
           selectedBird.arrow.rotation.z = 0;                           
 
-        if(selectedBird.boid.position.x < -viewportHalfWidth-cameraOffsetX)
+        if(selectedBird.boid.position.x < -viewportHalfWidth+cameraOffsetX)
         {
           selectedBird.arrow.rotation.z = Math.PI/2;          
-          pos.x = -viewportHalfWidth-cameraOffsetX;
+          pos.x = -viewportHalfWidth+cameraOffsetX;
         }
-        else if(selectedBird.boid.position.x > viewportHalfWidth-cameraOffsetX)
+        else if(selectedBird.boid.position.x > viewportHalfWidth+cameraOffsetX)
         {
           selectedBird.arrow.rotation.z = -Math.PI/2;                    
-          pos.x = viewportHalfWidt-cameraOffsetX;
+          pos.x = viewportHalfWidth+cameraOffsetX;
         }
 
         if(selectedBird.boid.position.y < -viewportHalfHeight)
