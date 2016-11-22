@@ -65,6 +65,8 @@
   // Based on http://www.openprocessing.org/visuals/?visualID=6910
 
   var ratio = 4000/450;
+  var boundariesXrel = [3159/8000,4885/8000];
+  var birdScale = 1.5;
 
   var SCREEN_WIDTH = window.innerWidth,
     SCREEN_HEIGHT = window.innerWidth/ratio,
@@ -459,7 +461,7 @@ loader.load(
 
         // So we can track witch boid is associated to the bird
         bird.geometry.uniqueIdentifier = boid.uniqueIdentifier;
-    bird.geometry.scale(3,3,3);
+    bird.geometry.scale(birdScale,birdScale,birdScale);
 
         scene.add(bird);
       }
@@ -522,7 +524,7 @@ loader.load(
           item = {
             id:uniqueIdentifier,
             circle:new THREE.Mesh(
-              new THREE.RingGeometry(24, 30, 6),
+              new THREE.RingGeometry(16, 20, 6),
               new THREE.MeshBasicMaterial({
                 color: 0xffff00,
                 side: THREE.DoubleSide
@@ -587,7 +589,7 @@ loader.load(
     boidIndex = boids.length;
     boid = boids[boidIndex] = new Boid();
 
-    boid.position.x = (Math.random() * SCREEN_WIDTH - SCREEN_WIDTH / 2);
+    boid.position.x = (Math.random() * SCREEN_WIDTH * boundariesXrel[0] - SCREEN_WIDTH / 2);
     boid.position.y = (Math.random() * SCREEN_HEIGHT - SCREEN_HEIGHT / 2);
     boid.position.z = (Math.random() * 200 - 200 / 2);
 
@@ -625,7 +627,7 @@ loader.load(
       side: THREE.DoubleSide
     }));
 
-    bird.geometry.scale(3,3,3);
+    bird.geometry.scale(birdScale,birdScale,birdScale);
 
     // selectBird(boid.uniqueIdentifier);
 
