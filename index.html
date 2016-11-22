@@ -66,7 +66,7 @@
 
   var ratio = 4000/450;
   var boundariesXrel = [3159/8000,4885/8000];
-  var birdScale = 1.5;
+  var birdScale = 3;
 
   var SCREEN_WIDTH = window.innerWidth,
     SCREEN_HEIGHT = window.innerWidth/ratio,
@@ -395,7 +395,7 @@ loader.load(
 
   function init() {
 
-    camera = new THREE.OrthographicCamera(-SCREEN_WIDTH /2, SCREEN_WIDTH/2, SCREEN_HEIGHT/2, -SCREEN_HEIGHT/2, -1000, 1000);
+    camera = new THREE.OrthographicCamera(-SCREEN_WIDTH /4, SCREEN_WIDTH/4, SCREEN_HEIGHT/4, -SCREEN_HEIGHT/4, -1000, 1000);
     // camera.position.z = 1000;
 
     scene = new THREE.Scene();
