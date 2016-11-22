@@ -736,10 +736,10 @@ var viewportHalfHeight = SCREEN_HEIGHT/4;
       // if(j%60 == 0)
       //   console.log("Bird at index "+i+" id"+selectedBird.id+" position "+selectedBird.boid.position.x+","+selectedBird.boid.position.y);
 
-      if(selectedBird.boid.position.x > -viewportHalfHeight
-        && selectedBird.boid.position.x < viewportHalfHeight
-        && selectedBird.boid.position.y > -viewportHalfWidth
-        && selectedBird.boid.position.y < viewportHalfWidth)
+      if(selectedBird.boid.position.x > -viewportHalfWidth
+        && selectedBird.boid.position.x < viewportHalfWidth
+        && selectedBird.boid.position.y > -viewportHalfHeight
+        && selectedBird.boid.position.y < viewportHalfHeight)
       {
         on++;
         // On screen. Hide arrow, show circle
@@ -783,25 +783,25 @@ var viewportHalfHeight = SCREEN_HEIGHT/4;
 
           selectedBird.arrow.rotation.z = 0;                           
 
-        if(selectedBird.boid.position.x < -SCREEN_WIDTH_HALF)
+        if(selectedBird.boid.position.x < -viewportHalfWidth)
         {
           selectedBird.arrow.rotation.z = Math.PI/2;          
-          pos.x = -SCREEN_WIDTH_HALF;
+          pos.x = -viewportHalfWidth;
         }
-        else if(selectedBird.boid.position.x > SCREEN_WIDTH_HALF)
+        else if(selectedBird.boid.position.x > viewportHalfWidth)
         {
           selectedBird.arrow.rotation.z = -Math.PI/2;                    
-          pos.x = SCREEN_WIDTH_HALF;
+          pos.x = viewportHalfWidth;
         }
 
-        if(selectedBird.boid.position.y < -SCREEN_HEIGHT_HALF)
+        if(selectedBird.boid.position.y < -viewportHalfHeight)
         {
-          pos.y = -SCREEN_HEIGHT_HALF;
+          pos.y = -viewportHalfHeight;
           selectedBird.arrow.rotation.z = -Math.PI;                    
         }
-        else if(selectedBird.boid.position.y > SCREEN_HEIGHT_HALF)
+        else if(selectedBird.boid.position.y > viewportHalfHeight)
         {
-          pos.y = SCREEN_HEIGHT_HALF;
+          pos.y = viewportHalfHeight;
         }
 
     // if(j%60 == 0)
