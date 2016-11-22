@@ -736,7 +736,7 @@ var viewportHalfHeight = SCREEN_HEIGHT/4;
       // if(j%60 == 0)
       //   console.log("Bird at index "+i+" id"+selectedBird.id+" position "+selectedBird.boid.position.x+","+selectedBird.boid.position.y);
 
-      if(selectedBird.boid.position.x > -viewportHalfWidth-cameraOffsetX
+      if(selectedBird.boid.position.x > -viewportHalfWidth+cameraOffsetX
         && selectedBird.boid.position.x < viewportHalfWidth+cameraOffsetX
         && selectedBird.boid.position.y > -viewportHalfHeight
         && selectedBird.boid.position.y < viewportHalfHeight)
@@ -783,10 +783,10 @@ var viewportHalfHeight = SCREEN_HEIGHT/4;
 
           selectedBird.arrow.rotation.z = 0;                           
 
-        if(selectedBird.boid.position.x < -viewportHalfWidth-cameraOffsetX)
+        if(selectedBird.boid.position.x < -viewportHalfWidth+cameraOffsetX)
         {
           selectedBird.arrow.rotation.z = Math.PI/2;          
-          pos.x = -viewportHalfWidth-cameraOffsetX;
+          pos.x = -viewportHalfWidth+cameraOffsetX;
         }
         else if(selectedBird.boid.position.x > viewportHalfWidth+cameraOffsetX)
         {
