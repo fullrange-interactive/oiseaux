@@ -77,7 +77,7 @@
 var viewportHalfWidth = SCREEN_WIDTH/4;
 var viewportHalfHeight = SCREEN_HEIGHT/4;    
 
-  var cameraOffsetX = 2*SCREEN_WIDTH/5;
+  var cameraOffsetX = 1.5*SCREEN_WIDTH/5;
 
   var MAX_BIRDS = 100; // the amount of birds reach this limit 
   var BIRD_CREATION_ON_INACTIVTY_TIMER = 1; // Create bird if not active for 10 min 
@@ -534,7 +534,7 @@ var viewportHalfHeight = SCREEN_HEIGHT/4;
             circle:new THREE.Mesh(
               new THREE.RingGeometry(16, 20, 6),
               new THREE.MeshBasicMaterial({
-                color: 0xffff00,
+                color: bird.material.color,
                 side: THREE.DoubleSide
               })
             ),
@@ -547,7 +547,7 @@ var viewportHalfHeight = SCREEN_HEIGHT/4;
               side:THREE.FrontSide,
               depthTest:false,
               transparent:true,
-              color:0xFFFF00,
+              color:bird.material.color,
               opacity:1 })),
             isArrowVisible:false,
             boid:boid,
