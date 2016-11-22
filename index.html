@@ -592,7 +592,7 @@ loader.load(
     boidIndex = boids.length;
     boid = boids[boidIndex] = new Boid();
 
-    boid.position.x = (Math.random() * SCREEN_WIDTH * boundariesXrel[0] - SCREEN_WIDTH / 2);
+    boid.position.x = (Math.random() * SCREEN_WIDTH/6 - SCREEN_WIDTH/12);
     boid.position.y = (Math.random() * SCREEN_HEIGHT - SCREEN_HEIGHT / 2);
     boid.position.z = (Math.random() * 200 - 200 / 2);
 
