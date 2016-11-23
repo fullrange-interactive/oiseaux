@@ -64,20 +64,17 @@
 // $("document").ready(function(){
   // Based on http://www.openprocessing.org/visuals/?visualID=6910
 
-  var ratio = 4000/450;
-  var boundariesXrel = [3159/8000,4885/8000];
-  var birdScale = 3;
+  var ratio = 5000/923;
+  var boundariesXrel = [3221/5000,4885/8000];
+  var birdScale = 4;
 
-  var SCREEN_WIDTH = window.innerWidth,
-    SCREEN_HEIGHT = window.innerWidth/ratio,
-    SCREEN_WIDTH_HALF = SCREEN_WIDTH / 2,
-    SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
+  var SCREEN_WIDTH = window.innerWidth, SCREEN_HEIGHT = window.innerWidth/ratio;
+  var SCREEN_WIDTH_HALF = SCREEN_WIDTH / 2, SCREEN_HEIGHT_HALF = SCREEN_HEIGHT / 2;
 
+  var viewportHalfWidth = SCREEN_WIDTH/3;
+  var viewportHalfHeight = SCREEN_HEIGHT/3;    
 
-var viewportHalfWidth = SCREEN_WIDTH/4;
-var viewportHalfHeight = SCREEN_HEIGHT/4;    
-
-  var cameraOffsetX = SCREEN_WIDTH/5;
+  var cameraOffsetX = SCREEN_WIDTH/10;
 
   var MAX_BIRDS = 100; // the amount of birds reach this limit 
   var BIRD_CREATION_ON_INACTIVTY_TIMER = 1; // Create bird if not active for 10 min 
@@ -399,8 +396,7 @@ loader.load(
     }
   );
 
-var viewportHalfWidth = SCREEN_WIDTH/4;
-var viewportHalfHeight = SCREEN_HEIGHT/4;
+
   function init() {
 
     camera = new THREE.OrthographicCamera(-viewportHalfWidth+cameraOffsetX, viewportHalfWidth+cameraOffsetX, viewportHalfHeight, -viewportHalfHeight, -1000, 1000);
@@ -408,6 +404,20 @@ var viewportHalfHeight = SCREEN_HEIGHT/4;
 
     scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2( 0x000000, 0.0002 );
+
+    // var center = new THREE.Mesh(
+    //   new THREE.RingGeometry(16, 20, 6),
+    //   new THREE.MeshBasicMaterial({
+    //     color: "0xffffff",
+    //     side: THREE.DoubleSide
+    //   })
+    // );
+
+    // center.position.x=0;
+    // center.position.y=0;
+    // center.position.z=0;
+
+    // scene.add(center);
 
     birds = [];
     boids = [];
