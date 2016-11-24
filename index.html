@@ -86,6 +86,12 @@
   var repulseCoords = {x:0,y:0};
   var repulseActive = false;
 
+  var lastAdd = {};
+  var lastHighLight = {};
+
+  var floodTimeoutAdd = 2000;
+  var floodTimeoutHighlight = 2000;
+
   var selectedBirds = [];
 
   var Boid = function() {
@@ -479,7 +485,7 @@ loader.load(
 
         // So we can track witch boid is associated to the bird
         bird.geometry.uniqueIdentifier = boid.uniqueIdentifier;
-    bird.geometry.scale(birdScale,birdScale,birdScale);
+        bird.geometry.scale(birdScale,birdScale,birdScale);
 
         scene.add(bird);
       }
@@ -509,11 +515,19 @@ loader.load(
     };
   };
 
+
   /*
     Sets the flag on the bird matching the passed uniqueIdentifier
     and adds the selection circle mesh into the scene
   */
-  function selectBird(uniqueIdentifier) {
+  function selectBird(uniqueIdentifier,floodProtect) {
+
+    var now = new Date();
+
+    if(uniqueIdentifier in lastHighLight && floodProtect && (now.getTime()-lastHighLight[uniqueIdentifier].getTime() < floodTimeoutHighlight))
+      return;
+
+    lastHighLight[uniqueIdentifier] = now;    
 
     // Search for the requested bird, add in in the requested list if needed
     // 
@@ -602,7 +616,14 @@ loader.load(
   /*
      Creates and adds a bird to the scene
    */
-  function addBird(event, birdId, maxSpeed, movementX, movementY, movementZ, birdColor) {
+  function addBird(event, birdId, maxSpeed, movementX, movementY, movementZ, birdColor, floodProtect) {
+
+    var now = new Date();
+
+    if(birdId in lastAdd && floodProtect && (now.getTime()-lastAdd[birdId].getTime() < floodTimeoutAdd))
+      return;  
+
+    lastAdd[birdId] = now;    
 
     boidIndex = boids.length;
     boid = boids[boidIndex] = new Boid();
@@ -876,17 +897,17 @@ loader.load(
         
         var color = new THREE.Color('hsl(' + parsedMessage.data.h + ',' + parsedMessage.data.s + '%,' + parsedMessage.data.l + '%)');
 
-        addBird(null, birdId, maxSpeed, x, y, z, color.getHex());
-        selectBird(parsedMessage.data.userId);
+        addBird(null, birdId, maxSpeed, x, y, z, color.getHex(),true);
+        selectBird(parsedMessage.data.userId,true);
         lastBird = Date.now();
       break;
       case "selectBirds":
-        selectBird(parsedMessage.data.userId);
+        selectBird(parsedMessage.data.userId,true);
         lastBird = Date.now();
       break;
       case "hello":
         if (parsedMessage.data.state && parsedMessage.data.state.boids) {
-          // restoreBoids(parsedMessage.data.state.boids);
+          restoreBoids(parsedMessage.data.state.boids);
         } 
       break;
       default:
@@ -895,15 +916,15 @@ loader.load(
     }
   }
 
-  setInterval(function () {
-    if (Date.now() - lastBird > AUTO_IDLE_TIME && boids.length < MAX_BIRDS) {
-      addBird();
-    }
-    else
-    {
-      // selectBird(boids[randomIntFromInterval(0,boids.length-1)].uniqueIdentifier);        
-    }
-  }, AUTO_INTERVAL);
+  // setInterval(function () {
+  //   if (Date.now() - lastBird > AUTO_IDLE_TIME && boids.length < MAX_BIRDS) {
+  //     addBird();
+  //   }
+  //   else
+  //   {
+  //     // selectBird(boids[randomIntFromInterval(0,boids.length-1)].uniqueIdentifier);        
+  //   }
+  // }, AUTO_INTERVAL);
 
   setInterval(function(){
 
